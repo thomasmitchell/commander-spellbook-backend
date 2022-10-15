@@ -88,7 +88,11 @@ class VariantAdmin(admin.ModelAdmin):
 
     def generate(self, request: HttpRequest):
         if request.method == 'POST' and request.user.is_authenticated:
-            if (launch_job_command('generate_variants', timezone.timedelta(minutes=30), request.user)):
+            args = []
+            # Feature disabled:
+            # if request.POST.get('combo'):
+            #     args = ['--combo', request.POST.get('combo')]
+            if (launch_job_command('generate_variants', timezone.timedelta(minutes=30), request.user, args)):
                 messages.info(request, 'Variant generation job started.')
             else:
                 messages.warning(request, 'Variant generation is already running.')
