@@ -21,29 +21,29 @@ def log_into_job(job: Job, message: str, reset=False):
 
 @dataclass
 class VariantDefinition:
-    card_ids: list[int]
-    template_ids: list[int]
-    of_ids: set[int]
-    feature_ids: set[int]
-    included_ids: set[int]
+    card_ids: list
+    template_ids: list
+    of_ids: set
+    feature_ids: set
+    included_ids: set
 
 
-def unique_id_from_cards_and_templates_ids(cards: list[int], templates: list[int]) -> str:
+def unique_id_from_cards_and_templates_ids(cards: list, templates: list) -> str:
     hash_algorithm = hashlib.sha256()
     hash_algorithm.update(json.dumps({'c': sorted(cards), 't': sorted(templates)}).encode('utf-8'))
     return hash_algorithm.hexdigest()
 
 
-def subtract_removed_features(data: Data, includes: set[int], features: set[int]) -> set[int]:
+def subtract_removed_features(data: Data, includes: set, features: set) -> set:
     return features - set(r for c in includes for r in data.combo_to_removed_features[c])
 
 
-def merge_identities(identities: Iterable[str]):
+def merge_identities(identities: Iterable):
     i = set(''.join(identities).upper())
     return ''.join([color for color in 'WUBRG' if color in i])
 
 
-def includes_any(v: set[int], others: Iterable[set[int]]) -> bool:
+def includes_any(v: set, others: Iterable[set]) -> bool:
     for o in others:
         if v.issuperset(o):
             return True
@@ -54,11 +54,11 @@ def includes_any(v: set[int], others: Iterable[set[int]]) -> bool:
 class VariantBulkSaveItem:
     should_save: bool
     variant: Variant
-    uses: list[int] | None
-    requires: list[int] | None
-    of: set[int]
-    includes: set[int]
-    produces: set[int]
+    uses: list
+    requires: list
+    of: set
+    includes: set
+    produces: set
 
 
 def update_variant(
@@ -127,10 +127,10 @@ def create_variant(
     )
 
 
-def get_variants_from_graph(data: Data, job: Job = None) -> dict[str, VariantDefinition]:
+def get_variants_from_graph(data: Data, job: Job = None) -> dict:
     logging.info('Computing all possible variants:')
     combos = list(data.combos.filter(generator=True))
-    result = dict[str, VariantDefinition]()
+    result = dict()
     graph = Graph(data)
     total = len(combos)
     for i, combo in enumerate(combos):
@@ -160,7 +160,7 @@ def get_variants_from_graph(data: Data, job: Job = None) -> dict[str, VariantDef
     return result
 
 
-def perform_bulk_saves(to_create: list[VariantBulkSaveItem], to_update: list[VariantBulkSaveItem]):
+def perform_bulk_saves(to_create: list, to_update: list):
     batch_size = 999
     Variant.objects.bulk_create((v.variant for v in to_create if v.should_save), batch_size=batch_size)
     update_fields = ['identity', 'zone_locations', 'cards_state', 'mana_needed', 'other_prerequisites', 'description', 'status']
@@ -180,7 +180,7 @@ def perform_bulk_saves(to_create: list[VariantBulkSaveItem], to_update: list[Var
     ProducesTable.objects.bulk_create((ProducesTable(variant_id=v.variant.id, feature_id=f) for v in to_create + to_update for f in v.produces), batch_size=batch_size)
 
 
-def generate_variants(job: Job = None) -> tuple[int, int, int]:
+def generate_variants(job: Job = None) -> tuple:
     logging.info('Fetching variants set to RESTORE...')
     data = Data()
     to_restore = set(k for k, v in data.uid_to_variant.items() if v.status == Variant.Status.RESTORE)
@@ -192,8 +192,8 @@ def generate_variants(job: Job = None) -> tuple[int, int, int]:
     logging.info(f'Saving {len(variants)} variants...')
     log_into_job(job, f'Saving {len(variants)} variants...')
     with transaction.atomic():
-        to_bulk_update = list[VariantBulkSaveItem]()
-        to_bulk_create = list[VariantBulkSaveItem]()
+        to_bulk_update = list()
+        to_bulk_create = list()
         for unique_id, variant_def in variants.items():
             if unique_id in old_id_set:
                 status = data.uid_to_variant[unique_id].status

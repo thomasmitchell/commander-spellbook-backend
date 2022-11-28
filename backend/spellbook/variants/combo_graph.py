@@ -57,7 +57,7 @@ class FeatureNode(Node):
     def __init__(self, feature: Feature, cards: Iterable[CardNode] = [], produced_by_combos: Iterable['ComboNode'] = [], needed_by_combos: Iterable['ComboNode'] = []):
         super().__init__()
         self.feature = feature
-        self.cards = list[CardNode](cards)
+        self.cards = list(cards)
         self.produced_by_combos = list(produced_by_combos)
         self.needed_by_combos = list(needed_by_combos)
 
@@ -86,25 +86,25 @@ class ComboNode(Node):
 
 @dataclass(frozen=True)
 class VariantIngredients:
-    cards: list[Card]
-    templates: list[Template]
-    features: list[Feature]
-    combos: list[Combo]
+    cards: list
+    templates: list
+    features: list
+    combos: list
 
 
 class Graph:
     def __init__(self, data: Data):
         if data is not None:
             self.data = data
-            self.cnodes = dict[int, CardNode]((card.id, CardNode(card, [], [])) for card in data.cards)
+            self.cnodes = dict((card.id, CardNode(card, [], [])) for card in data.cards)
             for c in self.cnodes.values():
                 c.trie = VariantTrie(limit=MAX_CARDS_IN_COMBO)
                 c.trie.add([c.card.id], [])
-            self.tnodes = dict[int, TemplateNode]((template.id, TemplateNode(template, [])) for template in data.templates)
+            self.tnodes = dict((template.id, TemplateNode(template, [])) for template in data.templates)
             for t in self.tnodes.values():
                 t.trie = VariantTrie(limit=MAX_CARDS_IN_COMBO)
                 t.trie.add([], [t.template.id])
-            self.fnodes = dict[int, FeatureNode]()
+            self.fnodes = dict()
             for feature in data.features:
                 node = FeatureNode(feature,
                     cards=[self.cnodes[i.id] for i in feature.cards.all()],
@@ -113,7 +113,7 @@ class Graph:
                 self.fnodes[feature.id] = node
                 for card in feature.cards.all():
                     self.cnodes[card.id].features.append(node)
-            self.bnodes = dict[int, ComboNode]()
+            self.bnodes = dict()
             for combo in data.combos:
                 node = ComboNode(combo,
                     cards=[self.cnodes[i.id] for i in combo.uses.all()],
@@ -162,7 +162,7 @@ class Graph:
         combo.state = NodeState.VISITING
         card_tries = [c.trie for c in combo.cards]
         template_tries = [t.trie for t in combo.templates]
-        needed_features_tries: list[VariantTrie] = []
+        needed_features_tries: list = []
         for f in combo.features_needed:
             if f.state == NodeState.VISITING:
                 return VariantTrie()
@@ -177,7 +177,7 @@ class Graph:
             return feature.trie
         feature.state = NodeState.VISITING
         card_tries = [c.trie for c in feature.cards]
-        produced_combos_tries: list[VariantTrie] = []
+        produced_combos_tries: list = []
         for c in feature.produced_by_combos:
             if c.state == NodeState.VISITING:
                 continue
@@ -186,7 +186,7 @@ class Graph:
         feature.state = NodeState.VISITED
         return feature.trie
 
-    def _card_nodes_up(self, cards: list[CardNode], templates: list[TemplateNode]) -> VariantIngredients:
+    def _card_nodes_up(self, cards: list, templates: list) -> VariantIngredients:
         for featrue_node in templates + cards:
             featrue_node.state = NodeState.VISITED
         card_nodes = set(cards)

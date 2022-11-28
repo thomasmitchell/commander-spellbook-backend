@@ -34,9 +34,9 @@ def scryfall() -> dict:
 
 
 def find_combos():
-    combosdb = dict[frozenset[str], frozenset[str]]()
-    combosdata = dict[frozenset[str], tuple[str, str]]()
-    combos_reverse_id = dict[frozenset[str], str]()
+    combosdb = dict()
+    combosdata = dict()
+    combos_reverse_id = dict()
     # Commander Spellbook database fetching
     req = Request(
         'https://sheets.googleapis.com/v4/spreadsheets/1KqyDRZRCgy8YgMFnY0tHSw_3jC99Z0zFvJrPbfm66vA/values:batchGet?ranges=combos!A2:Q&key=AIzaSyBD_rcme5Ff37Evxa4eW5BFQZkmTbgpHew')

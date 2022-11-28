@@ -12,7 +12,7 @@ def rotate(li: list, x: int) -> list:
     return li[-x % len(li):] + li[:-x % len(li)]
 
 
-def all_rotations(li: list) -> list[list]:
+def all_rotations(li: list) -> list:
     return [rotate(li, x) for x in range(len(li))]
 
 
@@ -25,17 +25,17 @@ class VariantTrie():
         self.trie = Trie()
         self.max_depth = limit
 
-    def ingredients_to_key(self, cards: list[cardid], templates: list[templateid]) -> list[str]:
+    def ingredients_to_key(self, cards: list, templates: list) -> list:
         return merge_sort([f'C{c_id}' for c_id in cards], [f'T{t_id}' for t_id in templates])
 
-    def add(self, cards: list[cardid], templates: list[templateid]):
+    def add(self, cards: list, templates: list):
         base_key = self.ingredients_to_key(cards, templates)
         if len(base_key) > self.max_depth:
             return
         keys = all_rotations(base_key)
         self._add(base_key, keys)
 
-    def _add(self, key: list[str], all_rotations: list[list[str]]):
+    def _add(self, key: list, all_rotations: list):
         if len(key) > self.max_depth:
             return
         for key in all_rotations:
@@ -70,11 +70,11 @@ class VariantTrie():
     def __mul__(self, other: 'VariantTrie') -> 'VariantTrie':
         return self.__and__(other)
 
-    def variants(self) -> list[tuple[list[cardid], list[templateid]]]:
-        result = list[tuple[list[cardid], list[templateid]]]()
+    def variants(self) -> list:
+        result = list()
         for key in self.trie.keys():
-            cards = list[cardid]()
-            templates = list[templateid]()
+            cards = list()
+            templates = list()
             for item in key:
                 if item[0] == 'C':
                     cards.append(int(item[1:]))
@@ -87,20 +87,21 @@ class VariantTrie():
         return str(self.trie)
 
 
-def or_tries(tries: list[VariantTrie], limit: int = DEFAULT_MAX_DEPTH) -> VariantTrie:
+def or_tries(tries: list, limit: int = DEFAULT_MAX_DEPTH) -> VariantTrie:
     return aggregate_tries(tries, limit=limit, strategy=lambda x, y: x | y)
 
 
-def and_tries(tries: list[VariantTrie], limit: int = DEFAULT_MAX_DEPTH) -> VariantTrie:
+def and_tries(tries: list, limit: int = DEFAULT_MAX_DEPTH) -> VariantTrie:
     return aggregate_tries(tries, limit=limit, strategy=lambda x, y: x & y)
 
 
-def aggregate_tries(tries: list[VariantTrie], strategy, limit: int = DEFAULT_MAX_DEPTH) -> VariantTrie:
-    match len(tries):
-        case 0: return VariantTrie(limit=limit)
-        case 1: return tries[0]
-        case _:
-            result = tries[0]
-            for trie in tries[1:]:
-                result = strategy(result, trie)
-            return result
+def aggregate_tries(tries: list, strategy, limit: int = DEFAULT_MAX_DEPTH) -> VariantTrie:
+    if len(tries) == 0:
+        return VariantTrie(limit=limit)
+    elif len(tries) == 1:
+        return tries[0]
+    else:
+        result = tries[0]
+        for trie in tries[1:]:
+            result = strategy(result, trie)
+        return result

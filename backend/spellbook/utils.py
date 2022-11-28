@@ -11,9 +11,9 @@ from django.conf import settings
 ASYNC_MODE = True
 
 
-def launch_command_async(command: str, args: list[str] = []):
+def launch_command_async(command: str, args=[]):
     manage_py_path = pathlib.Path(__file__).parent.parent / 'manage.py'
-    args = ['python', manage_py_path.resolve(), command] + args
+    args = ['pypy', manage_py_path.resolve(), command] + args
     if sys.platform == "win32":
         subprocess.Popen(
             args=args,
@@ -22,7 +22,7 @@ def launch_command_async(command: str, args: list[str] = []):
         subprocess.Popen(args=args)
 
 
-def launch_job_command(command: str, duration: timedelta, user, args: list[str] = []) -> bool:
+def launch_job_command(command: str, duration: timedelta, user, args=[]) -> bool:
     """
     Launch a command asynchronously and create a Job object to track it.
     The command must be a management command that can take a --id parameter with the Job id.
