@@ -13,7 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # install psycopg2 dependencies
-RUN apk --update add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing gcc pypy3 musl-dev postgresql-dev && ln -sf pypy3 /usr/bin/pypy
+RUN apk --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing add gcc pypy3 musl-dev postgresql-dev && ln -sf pypy3 /usr/bin/pypy
 
 # pip
 RUN pypy -m ensurepip && pypy -m pip install --upgrade pip wheel
@@ -22,11 +22,11 @@ RUN pypy -m ensurepip && pypy -m pip install --upgrade pip wheel
 COPY ./requirements.txt .
 RUN echo -e '\n\
 gunicorn\n\
-psycopg2\n' >> requirements.txt
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+psycopg2cffi\n' >> requirements.txt
+RUN pypy -m pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
 
 # lint
-RUN pip install flake8
+RUN pypy -m pip install flake8
 COPY . .
 RUN pypy -m flake8 --ignore=E501,F401,E128,W601 .
 
@@ -38,9 +38,6 @@ RUN pypy -m flake8 --ignore=E501,F401,E128,W601 .
 # pull official base image
 FROM alpine:edge
 
-# create directory for the app user
-RUN mkdir -p /home/app
-
 # create the app user
 RUN addgroup -S app && adduser -S app -G app
 
@@ -51,10 +48,10 @@ RUN mkdir -p $APP_HOME/staticfiles
 WORKDIR $APP_HOME
 
 # install dependencies
-RUN apk --no-cache --update add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing libpq pypy3 && ln -sf pypy3 /usr/bin/pypy
+RUN apk --no-cache --update --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing add libpq pypy3 && ln -sf pypy3 /usr/bin/pypy
 COPY --from=builder /usr/src/app/wheels /wheels
 COPY --from=builder /usr/src/app/requirements.txt .
-RUN pypy -m ensurepip && pypy -m pip install --no-cache /wheels/*
+RUN pypy -m ensurepip && pypy -m pip install --upgrade pip && pypy -m pip install --no-cache /wheels/*
 
 # copy project
 COPY . $APP_HOME

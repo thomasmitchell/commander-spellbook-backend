@@ -14,6 +14,14 @@ import multiprocessing
 import os
 from pathlib import Path
 
+# Replace psycopg2 with psycopg2cffi
+try:
+    import psycopg2
+except ImportError:
+    # Fall back to psycopg2cffi
+    from psycopg2cffi import compat
+    compat.register()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
