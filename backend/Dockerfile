@@ -20,11 +20,13 @@ RUN pypy -m ensurepip && pypy -m pip install --upgrade pip wheel
 
 # install dependencies
 COPY ./requirements.txt .
-RUN echo -e "\ngunicorn\npsycopg2cffi\n" >> requirements.txt
-RUN pypy -m pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+RUN echo -e '\n\
+gunicorn\n\
+psycopg2\n' >> requirements.txt
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
 
 # lint
-RUN pypy -m pip install flake8
+RUN pip install flake8
 COPY . .
 RUN pypy -m flake8 --ignore=E501,F401,E128,W601 .
 
@@ -45,8 +47,7 @@ RUN addgroup -S app && adduser -S app -G app
 # create the appropriate directories
 ENV HOME=/home/app
 ENV APP_HOME=/home/app/web
-RUN mkdir $APP_HOME
-RUN mkdir $APP_HOME/staticfiles
+RUN mkdir -p $APP_HOME/staticfiles
 WORKDIR $APP_HOME
 
 # install dependencies
@@ -54,11 +55,6 @@ RUN apk --no-cache --update add --repository=http://dl-cdn.alpinelinux.org/alpin
 COPY --from=builder /usr/src/app/wheels /wheels
 COPY --from=builder /usr/src/app/requirements.txt .
 RUN pypy -m ensurepip && pypy -m pip install --no-cache /wheels/*
-
-# copy entrypoint.prod.sh
-# COPY ./entrypoint.prod.sh .
-# RUN sed -i 's/\r$//g'  $APP_HOME/entrypoint.prod.sh
-# RUN chmod +x  $APP_HOME/entrypoint.prod.sh
 
 # copy project
 COPY . $APP_HOME
@@ -73,11 +69,11 @@ ARG SECRET_KEY
 ENV SECRET_KEY=${SECRET_KEY}
 ENV DJANGO_SETTINGS_MODULE=backend.production_settings
 # run entrypoint.prod.sh
-RUN echo "pypy manage.py collectstatic --no-input --clear" > entrypoint.prod.sh
-RUN echo "sleep 3" >> entrypoint.prod.sh
-RUN echo "pypy manage.py migrate --noinput" >> entrypoint.prod.sh
-RUN echo "pypy manage.py clean_jobs" >> entrypoint.prod.sh
-RUN echo "pypy manage.py export_variants" >> entrypoint.prod.sh
-RUN echo "pypy -m gunicorn backend.wsgi:application --bind 0.0.0.0:8000" >> entrypoint.prod.sh
+RUN echo -e 'pypy manage.py collectstatic --no-input --clear\n\
+sleep 3\n\
+pypy manage.py migrate --noinput\n\
+pypy manage.py clean_jobs\n\
+pypy manage.py export_variants\n\
+pypy -m gunicorn backend.wsgi:application --bind 0.0.0.0:8000\n' > entrypoint.prod.sh
 EXPOSE 8000
 ENTRYPOINT ["/bin/sh", "entrypoint.prod.sh"]
